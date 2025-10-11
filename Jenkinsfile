@@ -1,48 +1,80 @@
 pipeline {
     agent any
-    tools {
-        nodejs 'NodeJS'
-    }
 
     environment {
-        SONAR_HOST_URL = 'http://20.37.160.232:9000'
-        SONAR_PROJECT_KEY = 'teclado'
+        // Variables configuradas automáticamente por JCasC
+        SONAR_HOST_URL = "${env.SONARQUBE_URL}"
+        SONAR_PROJECT_KEY = 'teclado-project'
+        SONAR_PROJECT_NAME = 'Teclado - Typing Practice App'
     }
 
     stages {
         stage('Checkout') {
             steps {
+                echo 'Clonando código fuente...'
                 checkout scm
             }
         }
-        stage('SonarQube Analysis') {
+
+        stage('Verificar Herramientas') {
             steps {
+                echo 'Verificando herramientas instaladas...'
+                sh '''
+                    echo "Node.js: $(node --version)"
+                    echo "NPM: $(npm --version)"
+                    echo "SonarScanner: $(sonar-scanner --version | head -1)"
+                '''
+            }
+        }
+
+        stage('Análisis de Código con SonarQube') {
+            steps {
+                echo 'Ejecutando análisis estático de código...'
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-                    withSonarQubeEnv('SonarQube') {
-                        script {
-                            def scannerHome = tool 'SonarScanner'
-                            sh """
-                                ${scannerHome}/bin/sonar-scanner \
-                                -Dsonar.projectKey=$SONAR_PROJECT_KEY \
-                                -Dsonar.sources=. \
-                                -Dsonar.host.url=$SONAR_HOST_URL \
-                                -Dsonar.login=$SONAR_TOKEN
-                            """
-                        }
-                    }
+                    sh """
+                        sonar-scanner \
+                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                          -Dsonar.projectName='${SONAR_PROJECT_NAME}' \
+                          -Dsonar.sources=. \
+                          -Dsonar.exclusions=css/**,**/*.css \
+                          -Dsonar.javascript.file.suffixes=.js \
+                          -Dsonar.host.url=${SONAR_HOST_URL} \
+                          -Dsonar.token=${SONAR_TOKEN}
+                    """
                 }
             }
         }
+
+        stage('Validación de Archivos') {
+            steps {
+                echo 'Verificando estructura del proyecto...'
+                sh '''
+                    echo "Archivos del proyecto:"
+                    ls -lah
+                    echo ""
+                    echo "Validando archivos críticos:"
+                    test -f index.html && echo "✓ index.html encontrado" || exit 1
+                    test -f script.js && echo "✓ script.js encontrado" || exit 1
+                    test -d css && echo "✓ carpeta css encontrada" || exit 1
+                '''
+            }
+        }
     }
+
     post {
-        always {
-            echo 'Pipeline finished'
+        success {
+            echo '¡Pipeline ejecutado exitosamente!'
+            echo 'Revisa el análisis en: http://20.12.193.55:9000/dashboard?id=${SONAR_PROJECT_KEY}'
         }
         failure {
-            echo 'Pipeline failed'
+            echo 'Pipeline falló - revisar logs'
         }
-        success {
-            echo 'Pipeline succeeded'
+        always {
+            echo 'Limpieza completada'
+            cleanWs(cleanWhenNotBuilt: false,
+                    deleteDirs: true,
+                    disableDeferredWipeout: true,
+                    notFailBuild: true)
         }
     }
 }
