@@ -63,14 +63,18 @@ pipeline {
 
     post {
         success {
-            echo '✅ ¡Pipeline ejecutado exitosamente!'
-            echo '📊 Revisa el análisis en: http://20.12.193.55:9000/dashboard?id=${SONAR_PROJECT_KEY}'
+            echo '¡Pipeline ejecutado exitosamente!'
+            echo 'Revisa el análisis en: http://20.12.193.55:9000/dashboard?id=${SONAR_PROJECT_KEY}'
         }
         failure {
-            echo '❌ Pipeline falló - revisar logs'
+            echo 'Pipeline falló - revisar logs'
         }
         always {
-            echo '🧹 Pipeline finalizado'
+            echo 'Limpieza completada'
+            cleanWs(cleanWhenNotBuilt: false,
+                    deleteDirs: true,
+                    disableDeferredWipeout: true,
+                    notFailBuild: true)
         }
     }
 }
