@@ -70,11 +70,7 @@ pipeline {
             echo 'Pipeline falló - revisar logs'
         }
         always {
-            echo 'Limpieza completada'
-            cleanWs(cleanWhenNotBuilt: false,
-                    deleteDirs: true,
-                    disableDeferredWipeout: true,
-                    notFailBuild: true)
+            echo 'Pipeline finalizado'
         }
     }
 }
