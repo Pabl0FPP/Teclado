@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        nodejs 'NodeJS'
+    }
 
     environment {
         SONAR_HOST_URL = 'http://20.37.160.232:9000'
